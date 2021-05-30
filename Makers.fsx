@@ -49,17 +49,16 @@ module Read =
     let private endDate = userDate "End date: "
 
     let private csvDate value = parseDate "d/M/yyyy h:mmtt" value
-
+    
     let rec private archive () =
-        try
-            input "CSV path: "
+        try input "CSV path: "
             |> Frame.ReadCsv
             |> Frame.rows
             |> Series.filterValues (fun _ -> true)
         with :? FileNotFoundException -> archive ()
 
     let rec private reviews archive startDate endDate =
-        (archive: Series<int, ObjectSeries<string>>)
+        (archive: Series<int,ObjectSeries<string>>)
         |> Series.filterValues
             (fun r ->
                 let date = r.GetAs<string> "Date" |> csvDate
@@ -91,7 +90,6 @@ module Read =
         let start = startDate ()
         let end' = endDate ()
         let archive = archive ()
-
         {| StartDate = start
            EndDate = end'
            Reviews = reviews archive (Some start) (Some end')
@@ -144,21 +142,23 @@ module Evaluate =
         (rows: Series<'a, ObjectSeries<string>>)
         |> Series.mapValues (fun r -> r.GetAs<string> <| trendsColumn category)
         |> Series.values
-        |> Seq.map
-            (fun s ->
-                s.Split ","
+        |> Seq.collect 
+            (fun s -> 
+                s.Split "," 
                 |> Array.filter (String.IsNullOrEmpty >> not))
-        |> Seq.concat
         |> Seq.fold
             (fun counts t ->
                 match Map.tryFind t counts with
                 | None -> Map.add t 1 counts
                 | Some count -> Map.add t (count + 1) counts)
             Map.empty
-
+    
     let private countNegativeTrend category rows =
         let trends = countTrend category rows
-        List.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends excludedTrends
+        List.fold 
+            (fun trends excludedTrend -> Map.remove excludedTrend trends)
+            trends
+            excludedTrends
 
     let private getName (row: ObjectSeries<string>) = row.GetAs<string> "Review"
 
@@ -195,7 +195,10 @@ module Evaluate =
         |> Series.mapValues getName
         |> Series.values
         |> Seq.distinct
-        |> Seq.filter (fun name -> hadSingleReview archive name |> not)
+        |> Seq.filter 
+            (fun name -> 
+                hadSingleReview archive name 
+                |> not)
         |> Seq.toList
         |> (acceptFlags: List<string> -> List<string>)
 
@@ -221,7 +224,8 @@ module Evaluate =
     let private requirementsGathering rows =
         countTrend "Requirements-gathering process" rows
 
-    let private debugging rows = countTrend "Debugging process" rows
+    let private debugging rows =
+        countTrend "Debugging process" rows
 
     let report archive start end' cancellations acceptFlags reviews =
         { Start = start
@@ -233,7 +237,7 @@ module Evaluate =
           Debugging = debugging reviews
           Weeks = weekCount reviews
           Surprises = surprisingTrends reviews
-          Flags = flag archive acceptFlags reviews }
+          Flags = flag  archive acceptFlags reviews }
 
 module Print =
 
@@ -254,8 +258,7 @@ module Print =
         let folder state (key, value) = state + frequency key value
         category folder label <| Map.toList frequencies
 
-    let private listing label entries =
-        category (fun state e -> $"{state}{e}\n") label entries
+    let private listing label entries = category (fun state e -> $"{state}{e}\n") label entries
 
     let private (.+.) report update = report + "\n" + update
 
@@ -280,13 +283,7 @@ let report () =
     let report = Read.report ()
 
     let report =
-        Evaluate.report
-            report.Archive
-            report.StartDate
-            report.EndDate
-            Read.cancellations
-            Read.acceptFlags
-            report.Reviews
+        Evaluate.report report.Archive report.StartDate report.EndDate Read.cancellations Read.acceptFlags report.Reviews
 
     Print.report Read.target report
 
