@@ -265,7 +265,7 @@ module Print =
         .+. table "Requirements-gathering process" value.RequirementsGathering
         .+. table "Debugging process" value.Debugging
         .+. table "Review week frequencies" value.Weeks
-        .+. listing "Surprising trends" value.Surprises
+        .+. listing "Surprising behaviour" value.Surprises
         .+. listing
                 "Devs flagged for attention (with at least 4 negative trends and no notable improvement)"
                 value.Flags
