@@ -140,6 +140,14 @@ module Evaluate =
           "Notable improvement between sessions"
           "UUID error" ]
 
+    let private countFolder counts t =
+        let count =
+            match Map.tryFind t counts with
+            | None -> 1
+            | Some count -> count + 1
+
+        Map.add t count counts
+
     let private countTrend category rows =
         (rows: Series<'a, ObjectSeries<string>>)
         |> Series.mapValues (fun r -> r.GetAs<string> <| trendsColumn category)
@@ -148,12 +156,7 @@ module Evaluate =
             (fun s ->
                 s.Split ","
                 |> Array.filter (String.IsNullOrEmpty >> not))
-        |> Seq.fold
-            (fun counts t ->
-                match Map.tryFind t counts with
-                | None -> Map.add t 1 counts
-                | Some count -> Map.add t (count + 1) counts)
-            Map.empty
+        |> Seq.fold countFolder Map.empty
 
     let private countNegativeTrend category rows =
         let trends = countTrend category rows
@@ -201,12 +204,7 @@ module Evaluate =
     let private weekCount rows =
         rows
         |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> "Week (from Review)")
-        |> Series.foldValues
-            (fun counts week ->
-                match Map.tryFind week counts with
-                | None -> Map.add week 1 counts
-                | Some count -> Map.add week (count + 1) counts)
-            Map.empty
+        |> Series.foldValues countFolder Map.empty
         |> Map.filter (fun week _ -> let mutable __ = 0 in Int32.TryParse(week, &__))
 
     let private tddProcess rows = countTrend "TDD process" rows
