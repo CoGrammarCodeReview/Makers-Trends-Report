@@ -40,6 +40,8 @@ module Column =
 
     let requirements = "Requirements-gathering process"
 
+    let debugging = "Debugging process"
+
 module Read =
 
     let private input message =
@@ -139,7 +141,7 @@ module Evaluate =
     let private trendCategories =
         [ Column.tdd
           Column.requirements
-          "Debugging process"
+          Column.debugging
           Column.general ]
 
     let private excludedTrends =
@@ -222,7 +224,7 @@ module Evaluate =
     let private requirementsGathering rows =
         countTrend Column.requirements rows
 
-    let private debugging rows = countTrend "Debugging process" rows
+    let private debugging rows = countTrend Column.debugging rows
 
     let report archive start end' cancellations acceptFlags reviews =
         { Start = start
