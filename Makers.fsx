@@ -210,9 +210,11 @@ module Evaluate =
         |> Seq.collect trendValues
         |> Seq.fold countFolder Map.empty
 
+    let private excludeTrend trends excludedTrend = Map.remove excludedTrend trends
+
     let private countNegativeTrend container rows =
         let trends = countTrend container rows
-        Seq.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends Trend.exclusions
+        Seq.fold excludeTrend trends Trend.exclusions
 
     let private getUuid (row: ObjectSeries<string>) = row.GetAs<string> Column.uuid
 
