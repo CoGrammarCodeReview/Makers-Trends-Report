@@ -53,7 +53,6 @@ module Read =
             input "CSV path: "
             |> Frame.ReadCsv
             |> Frame.rows
-            |> Series.filterValues (fun _ -> true)
         with :? FileNotFoundException -> archive ()
 
     let rec private reviews archive startDate endDate =
