@@ -30,6 +30,10 @@ module Format =
 
     let longDate = "d MMM yyyy"
 
+module Column =
+
+    let general = "General aspects about the review"
+
 module Read =
 
     let private input message =
@@ -131,7 +135,7 @@ module Evaluate =
         [ "TDD process"
           "Requirements-gathering process"
           "Debugging process"
-          "General aspects about the review" ]
+          Column.general ]
 
     let private excludedTrends =
         [ "No-show"
@@ -168,7 +172,7 @@ module Evaluate =
         |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
         |> Series.lastValue
         |> (fun r ->
-            trendsColumn "General aspects about the review"
+            trendsColumn Column.general
             |> r.GetAs<string>)
         |> (fun s -> s.Contains positiveTrend)
 
@@ -207,7 +211,7 @@ module Evaluate =
 
     let private general cancellations rows =
         let counts =
-            countTrend "General aspects about the review" rows
+            countTrend Column.general rows
         Map.add "Cancellations" (cancellations ()) counts
 
     let private requirementsGathering rows =
