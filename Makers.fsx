@@ -42,6 +42,10 @@ module Column =
 
     let debugging = "Debugging process"
 
+    let week = "Week (from Review)"
+
+    let trends column = $"Trends - {(column: string)}"
+
 module Read =
 
     let private input message =
@@ -114,10 +118,8 @@ module Evaluate =
 
     let private reviewCount rows = Series.countValues rows
 
-    let private trendsColumn category = $"Trends - {(category: string)}"
-
-    let private trend category label rows =
-        let column = trendsColumn category
+    let private trend column label rows =
+        let column = Column.trends column
         let filter (value: string) = value.Contains(label: string)
         Series.filterValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> column |> filter) rows
         |> Series.countValues
@@ -127,7 +129,7 @@ module Evaluate =
         List.map (fun t -> trend label t rows) trends
 
     let private surprisingTrends rows =
-        let column = trendsColumn Column.surprises
+        let column = Column.trends Column.surprises
         Series.filterValues
             (fun (r: ObjectSeries<string>) ->
                 r.GetAs<string> column
@@ -159,9 +161,9 @@ module Evaluate =
             | Some count -> count + 1
         Map.add trend count counts
 
-    let private countTrend category rows =
+    let private countTrend column rows =
         (rows: Series<'a, ObjectSeries<string>>)
-        |> Series.mapValues (fun r -> r.GetAs<string> <| trendsColumn category)
+        |> Series.mapValues (fun r -> r.GetAs<string> <| Column.trends column)
         |> Series.values
         |> Seq.collect
             (fun s ->
@@ -180,7 +182,7 @@ module Evaluate =
         |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
         |> Series.lastValue
         |> (fun r ->
-            trendsColumn Column.general
+            Column.trends Column.general
             |> r.GetAs<string>)
         |> (fun s -> s.Contains positiveTrend)
 
@@ -212,7 +214,7 @@ module Evaluate =
 
     let private weekCount rows =
         rows
-        |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> "Week (from Review)")
+        |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> Column.week)
         |> Series.foldValues countFolder Map.empty
 
     let private tdd rows = countTrend Column.tdd rows
