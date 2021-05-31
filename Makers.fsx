@@ -238,9 +238,10 @@ module Evaluate =
     let private tdd rows = countTrend Column.tdd rows
 
     let private general cancellations rows =
+        let trendLabel = "Cancellations"
         let counts =
             countTrend Column.general rows
-        Map.add "Cancellations" (cancellations ()) counts
+        Map.add trendLabel (cancellations ()) counts
 
     let private requirementsGathering rows =
         countTrend Column.requirements rows
