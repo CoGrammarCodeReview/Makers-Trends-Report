@@ -17,8 +17,8 @@ type Report =
       RequirementsGathering: Map<string, int>
       Debugging: Map<string, int>
       Weeks: Map<string, int>
-      Surprises: List<string>
-      Flags: List<string> }
+      Surprises: seq<string>
+      Flags: seq<string> }
 
 module Format =
 
@@ -150,7 +150,7 @@ module Read =
             | "n"
             | "no" -> false
             | _ -> predicate name
-        List.filter predicate names
+        Seq.filter predicate names
 
     let target () = input Message.reportPath
 
@@ -167,27 +167,32 @@ module Evaluate =
 
     let private reviewCount rows = Series.countValues rows
 
+    let private hasTrend (trend: string) (value: string) = value.Contains trend
+
+    let private trendFilter column trend row =
+        (row: ObjectSeries<string>).GetAs<string> column 
+        |> hasTrend trend
+
     let private trend column label rows =
         let column = Column.trends column
-        let filter (value: string) = value.Contains(label: string)
-        Series.filterValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> column |> filter) rows
+        Series.filterValues (trendFilter column label) rows
         |> Series.countValues
         |> fun count -> label, count
 
-    let private category label trends rows =
-        List.map (fun t -> trend label t rows) trends
+    let private category label trends rows = Seq.map (fun t -> trend label t rows) trends
+
+    let private isNonEmpty = String.IsNullOrWhiteSpace >> not
+
+    let private cellIsNonEmpty (column: string) (row: ObjectSeries<string>) = 
+        row.GetAs<string> column |> isNonEmpty
+
+    let cell column (row: ObjectSeries<string>) = row.GetAs<string> column
 
     let private surprisingTrends rows =
         let column = Column.trends Column.surprises
-        Series.filterValues
-            (fun (r: ObjectSeries<string>) ->
-                r.GetAs<string> column
-                |> String.IsNullOrWhiteSpace
-                |> not)
-            rows
-        |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> column)
+        Series.filterValues (cellIsNonEmpty column) rows
+        |> Series.mapValues (cell column)
         |> Series.values
-        |> List.ofSeq
 
     let private countFolder counts trend =
         let count =
@@ -196,71 +201,73 @@ module Evaluate =
             | Some count -> count + 1
         Map.add trend count counts
 
+    let private trendValues (s: string) = s.Split "," |> Array.filter isNonEmpty
+
     let private countTrend column rows =
         (rows: Series<'a, ObjectSeries<string>>)
-        |> Series.mapValues (fun r -> r.GetAs<string> <| Column.trends column)
+        |> Series.mapValues (cell <| Column.trends column)
         |> Series.values
-        |> Seq.collect
-            (fun s ->
-                s.Split ","
-                |> Array.filter (String.IsNullOrEmpty >> not))
+        |> Seq.collect trendValues
         |> Seq.fold countFolder Map.empty
 
-    let private countNegativeTrend category rows =
-        let trends = countTrend category rows
-        List.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends Trend.exclusions
+    let private countNegativeTrend container rows =
+        let trends = countTrend container rows
+        Seq.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends Trend.exclusions
 
-    let private getName (row: ObjectSeries<string>) = row.GetAs<string> Column.uuid
+    let private getUuid (row: ObjectSeries<string>) = row.GetAs<string> Column.uuid
 
-    let private lastImproved name rows =
+    let private uuidFilter uuid (row: ObjectSeries<string>) = getUuid row = uuid
+
+    let private hasPositive (s: string) = s.Contains Trend.positive
+
+    let private lastImproved uuid rows =
         rows
-        |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
+        |> Series.filterValues (uuidFilter uuid)
         |> Series.lastValue
-        |> (fun r ->
-            Column.trends Column.general
-            |> r.GetAs<string>)
-        |> (fun s -> s.Contains Trend.positive)
+        |> (Column.trends Column.general |> cell)
+        |> hasPositive
 
-    let private hadSingleReview archive name =
+    let private hadSingleReview archive uuid =
         archive
-        |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
+        |> Series.filterValues (uuidFilter uuid)
         |> Series.countValues
         |> (=) 1
 
+    let private negativeTrends row container = countNegativeTrend container ([ row ] |> Series.ofValues)
+
+    let private countSingleNegatives count trends = Map.count trends + count
+
     let private hasAtLeast4NegativeTrends (row: ObjectSeries<string>) =
         Trend.containers
-        |> List.map (fun category -> countNegativeTrend category ([ row ] |> Series.ofValues))
-        |> List.fold (fun count value -> Map.count value + count) 0
+        |> Seq.map (negativeTrends row)
+        |> Seq.fold countSingleNegatives 0
         |> (fun count -> count >= 4)
+
+    let private excludeImprovements rows row =
+        getUuid row |> fun name -> lastImproved name rows |> not
 
     let private flag archive acceptFlags rows =
         rows
         |> Series.filterValues hasAtLeast4NegativeTrends
-        |> Series.filterValues
-            (fun (r: ObjectSeries<string>) ->
-                getName r
-                |> fun name -> not <| lastImproved name rows)
-        |> Series.mapValues getName
+        |> Series.filterValues (excludeImprovements rows)
+        |> Series.mapValues getUuid
         |> Series.values
         |> Seq.distinct
         |> Seq.filter (fun name -> hadSingleReview archive name |> not)
-        |> Seq.toList
-        |> (acceptFlags: List<string> -> List<string>)
+        |> acceptFlags
 
     let private weekCount rows =
         rows
-        |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> Column.week)
+        |> Series.mapValues (cell Column.week)
         |> Series.foldValues countFolder Map.empty
 
     let private tdd rows = countTrend Column.tdd rows
 
     let private general cancellations rows =
-        let counts =
-            countTrend Column.general rows
+        let counts = countTrend Column.general rows
         Map.add Trend.cancellations (cancellations ()) counts
 
-    let private requirementsGathering rows =
-        countTrend Column.requirements rows
+    let private requirementsGathering rows = countTrend Column.requirements rows
 
     let private debugging rows = countTrend Column.debugging rows
 
@@ -287,16 +294,19 @@ module Print =
 
     let private reviewTotal total = frequency Trend.reviewTotal total
 
-    let private category folder label values = List.fold folder $"{label}:\n" values
+    let private category folder label values = Seq.fold folder $"{label}:\n" values
 
     let private table label (frequencies: Map<string, int>) =
         let folder state (key, value) = state + frequency key value
         category folder label <| Map.toList frequencies
 
-    let private listing label entries =
-        category (fun state e -> $"{state}{e}\n") label entries
+    let private listing label entries = category (fun state e -> $"{state}{e}\n") label entries
 
     let private (.+.) report update = report + "\n" + update
+
+    let private write target s =
+        use writer = target () |> File.CreateText
+        fprintfn writer "%s" s
 
     let report target value =
         title value.Start value.End
@@ -309,9 +319,7 @@ module Print =
         .+. table Header.week value.Weeks
         .+. listing Header.surprises value.Surprises
         .+. listing Header.flags value.Flags
-        |> (fun s ->
-            use writer = (target () |> File.CreateText)
-            fprintfn writer "%s" s)
+        |> write target
 
 let generateReport () =
     let data = Read.report ()
