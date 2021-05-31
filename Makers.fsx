@@ -36,6 +36,8 @@ module Column =
 
     let surprises = "New trend or surprising behaviour"
 
+    let tdd = "TDD process"
+
 module Read =
 
     let private input message =
@@ -133,7 +135,7 @@ module Evaluate =
         |> List.ofSeq
 
     let private trendCategories =
-        [ "TDD process"
+        [ Column.tdd
           "Requirements-gathering process"
           "Debugging process"
           Column.general ]
@@ -208,7 +210,7 @@ module Evaluate =
         |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> "Week (from Review)")
         |> Series.foldValues countFolder Map.empty
 
-    let private tddProcess rows = countTrend "TDD process" rows
+    let private tdd rows = countTrend Column.tdd rows
 
     let private general cancellations rows =
         let counts =
@@ -225,7 +227,7 @@ module Evaluate =
           End = end'
           TotalReviews = reviewCount reviews
           General = general cancellations reviews
-          Tdd = tddProcess reviews
+          Tdd = tdd reviews
           RequirementsGathering = requirementsGathering reviews
           Debugging = debugging reviews
           Weeks = weekCount reviews
