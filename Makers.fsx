@@ -20,7 +20,11 @@ type Report =
       Surprises: List<string>
       Flags: List<string> }
 
-let culture = CultureInfo "en-GB"
+let dateFormat = "d/M/yyyy"
+let dateTimeFormat = $"{dateFormat} h:mmtt"
+module Format =
+
+    let culture = CultureInfo "en-GB"
 
 module Read =
 
@@ -30,7 +34,7 @@ module Read =
 
     let private parseDate schema message =
         let pattern =
-            LocalDateTimePattern.Create(schema, culture)
+            LocalDateTimePattern.Create(schema, Format.culture)
         let result = pattern.Parse message
         if result.Success then
             Some result.Value
@@ -38,7 +42,7 @@ module Read =
             None
 
     let rec private userDate message () =
-        match message |> input |> parseDate "d/M/yyyy" with
+        match message |> input |> parseDate dateFormat with
         | Some date -> date
         | None -> userDate message ()
 
@@ -223,7 +227,7 @@ module Print =
 
     let private title startDate endDate =
         let pattern =
-            LocalDateTimePattern.Create("d MMM yyyy", culture)
+            LocalDateTimePattern.Create("d MMM yyyy", Format.culture)
         $"Trend report for period: {pattern.Format startDate} - {pattern.Format endDate}\n"
 
     let private frequency label count = $"{label}: {count}\n"
