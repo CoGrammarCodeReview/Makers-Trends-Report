@@ -34,6 +34,8 @@ module Column =
 
     let date = "Date"
 
+    let uuid = "Review"
+
     let general = "General aspects about the review"
 
     let surprises = "New trend or surprising behaviour"
@@ -193,7 +195,7 @@ module Evaluate =
         let trends = countTrend category rows
         List.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends Trend.exclusions
 
-    let private getName (row: ObjectSeries<string>) = row.GetAs<string> "Review"
+    let private getName (row: ObjectSeries<string>) = row.GetAs<string> Column.uuid
 
     let private lastImproved name rows =
         rows
