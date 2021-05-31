@@ -70,6 +70,8 @@ module Trend =
 
     let positive = "Notable improvement between sessions"
 
+    let reviewTotal = "Total reviews during this period"
+
 module Read =
 
     let private input message =
@@ -272,8 +274,7 @@ module Print =
 
     let private frequency label count = $"{label}: {count}\n"
 
-    let private reviewTotal total =
-        frequency "Total reviews during this period" total
+    let private reviewTotal total = frequency Trend.reviewTotal total
 
     let private category folder label values = List.fold folder $"{label}:\n" values
 
