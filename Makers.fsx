@@ -66,7 +66,8 @@ module Header =
 
     let surprises = "Surprising behaviour"
 
-    let flags = "Devs flagged for attention (with at least 4 negative trends and no notable improvement)"
+    let flags = "Devs flagged for attention (with at least 4 negative trends\
+        and no notable improvement)"
 
 module Trend =
 
@@ -76,9 +77,17 @@ module Trend =
 
     let reviewTotal = "Total reviews during this period"
 
-    let exclusions = [ "No-show"; "No UUID provided"; positive; "UUID error" ]
+    let exclusions =
+        [ "No-show"
+          "No UUID provided"
+          positive
+          "UUID error" ]
 
-    let containers = [ Column.tdd; Column.requirements; Column.debugging; Column.general ]
+    let containers =
+        [ Column.tdd
+          Column.requirements
+          Column.debugging
+          Column.general ]
 
 module Read =
 
@@ -90,7 +99,8 @@ module Read =
 
         let csvPath = "Reviews CSV path: "
 
-        let cancellations = "Number of cancellations in the period: "
+        let cancellations =
+            "Number of cancellations in the period: "
 
         let acceptFlags = "Y/n to accept or reject these flags:"
 
@@ -103,7 +113,9 @@ module Read =
     let private parseDate schema message =
         let pattern =
             LocalDateTimePattern.Create(schema, Format.culture)
+
         let result = pattern.Parse message
+
         if result.Success then
             Some result.Value
         else
@@ -137,12 +149,14 @@ module Read =
 
     let rec cancellations () =
         let userInput = input Message.cancellations
+
         try
             Int32.Parse userInput
         with :? FormatException -> cancellations ()
 
     let acceptFlags names =
         printfn "%s" Message.acceptFlags
+
         let rec predicate name =
             match input $"{name}: " |> fun s -> s.ToLower() with
             | "y"
@@ -150,6 +164,7 @@ module Read =
             | "n"
             | "no" -> false
             | _ -> predicate name
+
         Seq.filter predicate names
 
     let target () = input Message.reportPath
@@ -158,6 +173,7 @@ module Read =
         let start = startDate ()
         let end' = endDate ()
         let archive = archive ()
+
         {| StartDate = start
            EndDate = end'
            Reviews = reviews archive (Some start) (Some end')
@@ -170,26 +186,28 @@ module Evaluate =
     let private hasTrend (trend: string) (value: string) = value.Contains trend
 
     let private trendFilter column trend row =
-        (row: ObjectSeries<string>).GetAs<string> column 
+        (row: ObjectSeries<string>).GetAs<string> column
         |> hasTrend trend
 
     let private trend column label rows =
         let column = Column.trends column
+
         Series.filterValues (trendFilter column label) rows
         |> Series.countValues
         |> fun count -> label, count
 
-    let private category label trends rows = Seq.map (fun t -> trend label t rows) trends
+    let private category label trends rows =
+        Seq.map (fun t -> trend label t rows) trends
 
     let private isNonEmpty = String.IsNullOrWhiteSpace >> not
 
-    let private cellIsNonEmpty (column: string) (row: ObjectSeries<string>) = 
-        row.GetAs<string> column |> isNonEmpty
+    let private cellIsNonEmpty (column: string) (row: ObjectSeries<string>) = row.GetAs<string> column |> isNonEmpty
 
     let cell column (row: ObjectSeries<string>) = row.GetAs<string> column
 
     let private surprisingTrends rows =
         let column = Column.trends Column.surprises
+
         Series.filterValues (cellIsNonEmpty column) rows
         |> Series.mapValues (cell column)
         |> Series.values
@@ -199,6 +217,7 @@ module Evaluate =
             match Map.tryFind trend counts with
             | None -> 1
             | Some count -> count + 1
+
         Map.add trend count counts
 
     let private trendValues (s: string) = s.Split "," |> Array.filter isNonEmpty
@@ -235,7 +254,8 @@ module Evaluate =
         |> Series.countValues
         |> (<>) 1
 
-    let private negativeTrends row container = countNegativeTrend container ([ row ] |> Series.ofValues)
+    let private negativeTrends row container =
+        countNegativeTrend container ([ row ] |> Series.ofValues)
 
     let private countSingleNegatives count trends = Map.count trends + count
 
@@ -246,15 +266,21 @@ module Evaluate =
         |> (fun count -> count >= 4)
 
     let private didNotImprove rows row =
-        getUuid row |> fun name -> lastImproved name rows |> not
+        getUuid row
+        |> fun name -> lastImproved name rows |> not
 
-    let private underperformed rows row = hasAtLeast4NegativeTrends row && didNotImprove rows row
+    let private underperformed rows row =
+        hasAtLeast4NegativeTrends row
+        && didNotImprove rows row
 
-    let private devFlagFolder archive rows uuids row = 
+    let private devFlagFolder archive rows uuids row =
         let uuid = getUuid row
-        if underperformed rows row && hadMultipleReviews archive uuid
-        then Set.add uuid uuids
-        else uuids
+
+        if underperformed rows row
+           && hadMultipleReviews archive uuid then
+            Set.add uuid uuids
+        else
+            uuids
 
     let private flag archive acceptFlags rows =
         Series.foldValues (devFlagFolder archive rows) Set.empty rows
@@ -292,7 +318,9 @@ module Print =
     let private title startDate endDate =
         let pattern =
             LocalDateTimePattern.Create(Format.longDate, Format.culture)
-        $"Trend report for period: {pattern.Format startDate} - {pattern.Format endDate}\n"
+
+        $"Trend report for period: {pattern.Format startDate} -\
+         {pattern.Format endDate}\n"
 
     let private frequency label count = $"{label}: {count}\n"
 
@@ -302,9 +330,11 @@ module Print =
 
     let private table label (frequencies: Map<string, int>) =
         let folder state (key, value) = state + frequency key value
+
         category folder label <| Map.toList frequencies
 
-    let private listing label entries = category (fun state e -> $"{state}{e}\n") label entries
+    let private listing label entries =
+        category (fun state e -> $"{state}{e}\n") label entries
 
     let private (.+.) report update = report + "\n" + update
 
@@ -327,14 +357,10 @@ module Print =
 
 let generateReport () =
     let data = Read.report ()
+
     let value =
-        Evaluate.report
-            data.Archive
-            data.StartDate
-            data.EndDate
-            Read.cancellations
-            Read.acceptFlags
-            data.Reviews
+        Evaluate.report data.Archive data.StartDate data.EndDate Read.cancellations Read.acceptFlags data.Reviews
+
     Print.report Read.target value
 
 generateReport () // Entry point
