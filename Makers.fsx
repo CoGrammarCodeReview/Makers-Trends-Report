@@ -127,12 +127,13 @@ module Read =
             |> Frame.rows
         with :? FileNotFoundException -> archive ()
 
-    let rec private reviews archive startDate endDate =
+    let private reviewInRange start end' (row: ObjectSeries<string>) =
+        let date = row.GetAs<string> Column.date |> csvDate
+        date >= start && date < end'
+
+    let rec private reviews archive start end' =
         (archive: Series<int, ObjectSeries<string>>)
-        |> Series.filterValues
-            (fun r ->
-                let date = r.GetAs<string> Column.date |> csvDate
-                date >= startDate && date < endDate)
+        |> Series.filterValues (reviewInRange start end')
 
     let rec cancellations () =
         let userInput = input Message.cancellations
