@@ -140,13 +140,13 @@ module Evaluate =
           "Notable improvement between sessions"
           "UUID error" ]
 
-    let private countFolder counts t =
+    let private countFolder counts trend =
         let count =
-            match Map.tryFind t counts with
+            match Map.tryFind trend counts with
             | None -> 1
             | Some count -> count + 1
 
-        Map.add t count counts
+        Map.add trend count counts
 
     let private countTrend category rows =
         (rows: Series<'a, ObjectSeries<string>>)
