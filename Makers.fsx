@@ -31,9 +31,7 @@ module Read =
     let private parseDate schema message =
         let pattern =
             LocalDateTimePattern.Create(schema, culture)
-
         let result = pattern.Parse message
-
         if result.Success then
             Some result.Value
         else
@@ -67,14 +65,12 @@ module Read =
 
     let rec cancellations () =
         let userInput = input "Cancellations: "
-
         try
             Int32.Parse userInput
         with :? FormatException -> cancellations ()
 
     let acceptFlags names =
         printfn "Y/n to accept or reject these flags:"
-
         let rec predicate name =
             match input $"{name}: " |> fun s -> s.ToLower() with
             | "y"
@@ -82,7 +78,6 @@ module Read =
             | "n"
             | "no" -> false
             | _ -> predicate name
-
         List.filter predicate names
 
     let target () = input "Target path: "
@@ -91,7 +86,6 @@ module Read =
         let start = startDate ()
         let end' = endDate ()
         let archive = archive ()
-
         {| StartDate = start
            EndDate = end'
            Reviews = reviews archive (Some start) (Some end')
@@ -106,7 +100,6 @@ module Evaluate =
     let private trend category label rows =
         let column = trendsColumn category
         let filter (value: string) = value.Contains(label: string)
-
         Series.filterValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> column |> filter) rows
         |> Series.countValues
         |> fun count -> label, count
@@ -117,7 +110,6 @@ module Evaluate =
     let private surprisingTrends rows =
         let column =
             trendsColumn "New trend or surprising behaviour"
-
         Series.filterValues
             (fun (r: ObjectSeries<string>) ->
                 r.GetAs<string> column
@@ -145,7 +137,6 @@ module Evaluate =
             match Map.tryFind trend counts with
             | None -> 1
             | Some count -> count + 1
-
         Map.add trend count counts
 
     let private countTrend category rows =
@@ -166,7 +157,6 @@ module Evaluate =
 
     let private lastImproved name rows =
         let positiveTrend = "Notable improvement between sessions"
-
         rows
         |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
         |> Series.lastValue
@@ -211,7 +201,6 @@ module Evaluate =
     let private general cancellations rows =
         let counts =
             countTrend "General aspects about the review" rows
-
         Map.add "Cancellations" (cancellations ()) counts
 
     let private requirementsGathering rows =
@@ -236,7 +225,6 @@ module Print =
     let private title startDate endDate =
         let pattern =
             LocalDateTimePattern.Create("d MMM yyyy", culture)
-
         $"Trend report for period: {pattern.Format startDate} - {pattern.Format endDate}\n"
 
     let private frequency label count = $"{label}: {count}\n"
@@ -274,7 +262,6 @@ module Print =
 
 let report () =
     let report = Read.report ()
-
     let report =
         Evaluate.report
             report.Archive
@@ -283,7 +270,6 @@ let report () =
             Read.cancellations
             Read.acceptFlags
             report.Reviews
-
     Print.report Read.target report
 
 report () // Entry point
