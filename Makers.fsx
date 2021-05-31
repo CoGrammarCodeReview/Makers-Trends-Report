@@ -34,6 +34,8 @@ module Column =
 
     let general = "General aspects about the review"
 
+    let surprises = "New trend or surprising behaviour"
+
 module Read =
 
     let private input message =
@@ -119,8 +121,7 @@ module Evaluate =
         List.map (fun t -> trend label t rows) trends
 
     let private surprisingTrends rows =
-        let column =
-            trendsColumn "New trend or surprising behaviour"
+        let column = trendsColumn Column.surprises
         Series.filterValues
             (fun (r: ObjectSeries<string>) ->
                 r.GetAs<string> column
