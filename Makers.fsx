@@ -245,17 +245,19 @@ module Evaluate =
         |> Seq.fold countSingleNegatives 0
         |> (fun count -> count >= 4)
 
-    let private excludeImprovements rows row =
+    let private didNotImprove rows row =
         getUuid row |> fun name -> lastImproved name rows |> not
 
+    let underperformed rows row = hasAtLeast4NegativeTrends row && didNotImprove rows row
+
+    let devFlagFolder archive rows uuids row = 
+        let uuid = getUuid row
+        let hadMultipleReviews = hadSingleReview archive uuid |> not
+        if underperformed rows row && hadMultipleReviews then Set.add uuid uuids
+        else uuids
+
     let private flag archive acceptFlags rows =
-        rows
-        |> Series.filterValues hasAtLeast4NegativeTrends
-        |> Series.filterValues (excludeImprovements rows)
-        |> Series.mapValues getUuid
-        |> Series.values
-        |> Seq.distinct
-        |> Seq.filter (fun name -> hadSingleReview archive name |> not)
+        Series.foldValues (devFlagFolder archive rows) Set.empty rows
         |> acceptFlags
 
     let private weekCount rows =
