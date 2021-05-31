@@ -248,9 +248,9 @@ module Evaluate =
     let private didNotImprove rows row =
         getUuid row |> fun name -> lastImproved name rows |> not
 
-    let underperformed rows row = hasAtLeast4NegativeTrends row && didNotImprove rows row
+    let private underperformed rows row = hasAtLeast4NegativeTrends row && didNotImprove rows row
 
-    let devFlagFolder archive rows uuids row = 
+    let private devFlagFolder archive rows uuids row = 
         let uuid = getUuid row
         let hadMultipleReviews = hadSingleReview archive uuid |> not
         if underperformed rows row && hadMultipleReviews then Set.add uuid uuids
