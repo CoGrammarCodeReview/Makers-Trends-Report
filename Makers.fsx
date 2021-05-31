@@ -205,7 +205,6 @@ module Evaluate =
         rows
         |> Series.mapValues (fun (r: ObjectSeries<string>) -> r.GetAs<string> "Week (from Review)")
         |> Series.foldValues countFolder Map.empty
-        |> Map.filter (fun week _ -> let mutable __ = 0 in Int32.TryParse(week, &__))
 
     let private tddProcess rows = countTrend "TDD process" rows
 
