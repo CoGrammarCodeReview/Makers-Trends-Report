@@ -32,6 +32,8 @@ module Format =
 
 module Column =
 
+    let date = "Date"
+
     let general = "General aspects about the review"
 
     let surprises = "New trend or surprising behaviour"
@@ -72,6 +74,10 @@ module Trend =
 
     let reviewTotal = "Total reviews during this period"
 
+    let exclusions = [ "No-show"; "No UUID provided"; positive; "UUID error" ]
+
+    let containers = [ Column.tdd; Column.requirements; Column.debugging; Column.general ]
+
 module Read =
 
     let private input message =
@@ -109,7 +115,7 @@ module Read =
         (archive: Series<int, ObjectSeries<string>>)
         |> Series.filterValues
             (fun r ->
-                let date = r.GetAs<string> "Date" |> csvDate
+                let date = r.GetAs<string> Column.date |> csvDate
                 date >= startDate && date < endDate)
 
     let rec cancellations () =
@@ -166,18 +172,6 @@ module Evaluate =
         |> Series.values
         |> List.ofSeq
 
-    let private trendCategories =
-        [ Column.tdd
-          Column.requirements
-          Column.debugging
-          Column.general ]
-
-    let private excludedTrends =
-        [ "No-show"
-          "No UUID provided"
-          Trend.positive
-          "UUID error" ]
-
     let private countFolder counts trend =
         let count =
             match Map.tryFind trend counts with
@@ -197,7 +191,7 @@ module Evaluate =
 
     let private countNegativeTrend category rows =
         let trends = countTrend category rows
-        List.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends excludedTrends
+        List.fold (fun trends excludedTrend -> Map.remove excludedTrend trends) trends Trend.exclusions
 
     let private getName (row: ObjectSeries<string>) = row.GetAs<string> "Review"
 
@@ -217,7 +211,7 @@ module Evaluate =
         |> (=) 1
 
     let private hasAtLeast4NegativeTrends (row: ObjectSeries<string>) =
-        trendCategories
+        Trend.containers
         |> List.map (fun category -> countNegativeTrend category ([ row ] |> Series.ofValues))
         |> List.fold (fun count value -> Map.count value + count) 0
         |> (fun count -> count >= 4)
