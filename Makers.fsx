@@ -64,6 +64,12 @@ module Header =
 
     let flags = "Devs flagged for attention (with at least 4 negative trends and no notable improvement)"
 
+module Trend =
+
+    let cancellations = "Cancellations"
+
+    let positive = "Notable improvement between sessions"
+
 module Read =
 
     let private input message =
@@ -164,12 +170,10 @@ module Evaluate =
           Column.debugging
           Column.general ]
 
-    let private positiveTrend = "Notable improvement between sessions"
-
     let private excludedTrends =
         [ "No-show"
           "No UUID provided"
-          positiveTrend
+          Trend.positive
           "UUID error" ]
 
     let private countFolder counts trend =
@@ -202,7 +206,7 @@ module Evaluate =
         |> (fun r ->
             Column.trends Column.general
             |> r.GetAs<string>)
-        |> (fun s -> s.Contains positiveTrend)
+        |> (fun s -> s.Contains Trend.positive)
 
     let private hadSingleReview archive name =
         archive
@@ -238,10 +242,9 @@ module Evaluate =
     let private tdd rows = countTrend Column.tdd rows
 
     let private general cancellations rows =
-        let trendLabel = "Cancellations"
         let counts =
             countTrend Column.general rows
-        Map.add trendLabel (cancellations ()) counts
+        Map.add Trend.cancellations (cancellations ()) counts
 
     let private requirementsGathering rows =
         countTrend Column.requirements rows
