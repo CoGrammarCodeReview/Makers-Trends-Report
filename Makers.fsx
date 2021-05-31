@@ -144,10 +144,12 @@ module Evaluate =
           Column.debugging
           Column.general ]
 
+    let private positiveTrend = "Notable improvement between sessions"
+
     let private excludedTrends =
         [ "No-show"
           "No UUID provided"
-          "Notable improvement between sessions"
+          positiveTrend
           "UUID error" ]
 
     let private countFolder counts trend =
@@ -174,7 +176,6 @@ module Evaluate =
     let private getName (row: ObjectSeries<string>) = row.GetAs<string> "Review"
 
     let private lastImproved name rows =
-        let positiveTrend = "Notable improvement between sessions"
         rows
         |> Series.filterValues (fun (r: ObjectSeries<string>) -> getName r = name)
         |> Series.lastValue
