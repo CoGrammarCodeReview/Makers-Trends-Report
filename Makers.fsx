@@ -229,11 +229,11 @@ module Evaluate =
         |> (Column.trends Column.general |> cell)
         |> hasPositive
 
-    let private hadSingleReview archive uuid =
+    let private hadMultipleReviews archive uuid =
         archive
         |> Series.filterValues (uuidFilter uuid)
         |> Series.countValues
-        |> (=) 1
+        |> (<>) 1
 
     let private negativeTrends row container = countNegativeTrend container ([ row ] |> Series.ofValues)
 
@@ -252,8 +252,8 @@ module Evaluate =
 
     let private devFlagFolder archive rows uuids row = 
         let uuid = getUuid row
-        let hadMultipleReviews = hadSingleReview archive uuid |> not
-        if underperformed rows row && hadMultipleReviews then Set.add uuid uuids
+        if underperformed rows row && hadMultipleReviews archive uuid
+        then Set.add uuid uuids
         else uuids
 
     let private flag archive acceptFlags rows =
