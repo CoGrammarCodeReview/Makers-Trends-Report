@@ -82,6 +82,20 @@ module Trend =
 
 module Read =
 
+    module private Message =
+
+        let start = "Start date: "
+
+        let end' = "End date: "
+
+        let csvPath = "Reviews CSV path: "
+
+        let cancellations = "Number of cancellations in the period: "
+
+        let acceptFlags = "Y/n to accept or reject these flags:"
+
+        let reportPath = "Target report path: "
+
     let private input message =
         printf "%s" message
         Console.ReadLine()
@@ -100,15 +114,15 @@ module Read =
         | Some date -> date
         | None -> userDate message ()
 
-    let private startDate = userDate "Start date: "
+    let private startDate = userDate Message.start
 
-    let private endDate = userDate "End date: "
+    let private endDate = userDate Message.end'
 
     let private csvDate value = parseDate Format.dateTime value
 
     let rec private archive () =
         try
-            input "CSV path: "
+            input Message.csvPath
             |> Frame.ReadCsv
             |> Frame.rows
         with :? FileNotFoundException -> archive ()
@@ -121,13 +135,13 @@ module Read =
                 date >= startDate && date < endDate)
 
     let rec cancellations () =
-        let userInput = input "Cancellations: "
+        let userInput = input Message.cancellations
         try
             Int32.Parse userInput
         with :? FormatException -> cancellations ()
 
     let acceptFlags names =
-        printfn "Y/n to accept or reject these flags:"
+        printfn "%s" Message.acceptFlags
         let rec predicate name =
             match input $"{name}: " |> fun s -> s.ToLower() with
             | "y"
@@ -137,7 +151,7 @@ module Read =
             | _ -> predicate name
         List.filter predicate names
 
-    let target () = input "Target path: "
+    let target () = input Message.reportPath
 
     let report () =
         let start = startDate ()
