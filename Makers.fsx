@@ -38,6 +38,8 @@ module Column =
 
     let tdd = "TDD process"
 
+    let requirements = "Requirements-gathering process"
+
 module Read =
 
     let private input message =
@@ -136,7 +138,7 @@ module Evaluate =
 
     let private trendCategories =
         [ Column.tdd
-          "Requirements-gathering process"
+          Column.requirements
           "Debugging process"
           Column.general ]
 
@@ -218,7 +220,7 @@ module Evaluate =
         Map.add "Cancellations" (cancellations ()) counts
 
     let private requirementsGathering rows =
-        countTrend "Requirements-gathering process" rows
+        countTrend Column.requirements rows
 
     let private debugging rows = countTrend "Debugging process" rows
 
