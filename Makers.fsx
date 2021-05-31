@@ -66,7 +66,7 @@ module Header =
 
     let surprises = "Surprising behaviour"
 
-    let flags = "Devs flagged for attention (with at least 4 negative trends\
+    let flags = "Devs flagged for attention (with at least 4 negative trends \
         and no notable improvement)"
 
 module Trend =
@@ -319,7 +319,7 @@ module Print =
         let pattern =
             LocalDateTimePattern.Create(Format.longDate, Format.culture)
 
-        $"Trend report for period: {pattern.Format startDate} -\
+        $"Trend report for period: {pattern.Format startDate} - \
          {pattern.Format endDate}\n"
 
     let private frequency label count = $"{label}: {count}\n"
