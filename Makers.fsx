@@ -46,6 +46,24 @@ module Column =
 
     let trends column = $"Trends - {(column: string)}"
 
+module Header =
+
+    let frequency = "Trends frequency"
+
+    let general = "General"
+
+    let tdd = Column.tdd
+
+    let debugging = Column.debugging
+
+    let requirements = Column.requirements
+
+    let week = "Review weeks"
+
+    let surprises = "Surprising behaviour"
+
+    let flags = "Devs flagged for attention (with at least 4 negative trends and no notable improvement)"
+
 module Read =
 
     let private input message =
@@ -267,16 +285,14 @@ module Print =
     let report target value =
         title value.Start value.End
         .+. reviewTotal value.TotalReviews
-        .+. "Trends frequency:\n"
-        .+. table "General" value.General
-        .+. table "TDD process" value.Tdd
-        .+. table "Requirements-gathering process" value.RequirementsGathering
-        .+. table "Debugging process" value.Debugging
-        .+. table "Review week frequencies" value.Weeks
-        .+. listing "Surprising behaviour" value.Surprises
-        .+. listing
-                "Devs flagged for attention (with at least 4 negative trends and no notable improvement)"
-                value.Flags
+        .+. $"{Header.frequency}:\n"
+        .+. table Header.general value.General
+        .+. table Header.tdd value.Tdd
+        .+. table Header.requirements value.RequirementsGathering
+        .+. table Header.debugging value.Debugging
+        .+. table Header.week value.Weeks
+        .+. listing Header.surprises value.Surprises
+        .+. listing Header.flags value.Flags
         |> (fun s ->
             use writer = (target () |> File.CreateText)
             fprintfn writer "%s" s)
