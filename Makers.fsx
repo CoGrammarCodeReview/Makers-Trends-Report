@@ -312,16 +312,16 @@ module Print =
             use writer = (target () |> File.CreateText)
             fprintfn writer "%s" s)
 
-let report () =
-    let report = Read.report ()
-    let report =
+let generateReport () =
+    let data = Read.report ()
+    let value =
         Evaluate.report
-            report.Archive
-            report.StartDate
-            report.EndDate
+            data.Archive
+            data.StartDate
+            data.EndDate
             Read.cancellations
             Read.acceptFlags
-            report.Reviews
-    Print.report Read.target report
+            data.Reviews
+    Print.report Read.target value
 
-report () // Entry point
+generateReport () // Entry point
