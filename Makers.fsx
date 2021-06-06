@@ -89,6 +89,11 @@ module Trend =
           Column.debugging
           Column.general ]
 
+    let week =
+        {| Invalid = "NaN"
+           Before = "Before Week 12"
+           After = "After Week 12" |}
+
 module Read =
 
     module private Message =
@@ -286,10 +291,25 @@ module Evaluate =
         Series.foldValues (devFlagFolder archive rows) Set.empty rows
         |> acceptFlags
 
+    let private weekFolder counts row =
+        let week = cell Column.week row
+
+        let add trend = countFolder counts trend
+
+        try
+            let week = int week
+
+            if week < 12 && week > 0 then
+                add Trend.week.Before
+            else if week > 12 then
+                add Trend.week.After
+            else
+                add Trend.week.Invalid
+        // FormatException is thrown when the int function fails to parse
+        with :? FormatException -> add Trend.week.Invalid
+
     let private weekCount rows =
-        rows
-        |> Series.mapValues (cell Column.week)
-        |> Series.foldValues countFolder Map.empty
+        Series.foldValues weekFolder Map.empty rows
 
     let private tdd rows = countTrend Column.tdd rows
 
