@@ -66,7 +66,8 @@ module Header =
 
     let surprises = "Surprising behaviour"
 
-    let flags = "Devs flagged for attention (with at least 4 negative trends \
+    let flags =
+        "Devs flagged for attention (with at least 4 negative trends \
         and no notable improvement)"
 
 module Trend =
@@ -142,7 +143,8 @@ module Read =
             input Message.csvPath
             |> Frame.ReadCsv
             |> Frame.rows
-        with :? FileNotFoundException -> archive ()
+        with
+        | :? FileNotFoundException -> archive ()
 
     let private reviewInRange start end' (row: ObjectSeries<string>) =
         let date = row.GetAs<string> Column.date |> csvDate
@@ -157,7 +159,8 @@ module Read =
 
         try
             Int32.Parse userInput
-        with :? FormatException -> cancellations ()
+        with
+        | :? FormatException -> cancellations ()
 
     let acceptFlags names =
         printfn "%s" Message.acceptFlags
@@ -292,11 +295,12 @@ module Evaluate =
         |> acceptFlags
 
     let private weekFolder counts row =
-        let week = cell Column.week row
 
         let add trend = countFolder counts trend
 
         try
+            let week = cell Column.week row
+
             let week = int week
 
             if week < 12 && week > 0 then
@@ -305,8 +309,10 @@ module Evaluate =
                 add Trend.week.After
             else
                 add Trend.week.Invalid
-        // FormatException is thrown when the int function fails to parse
-        with :? FormatException -> add Trend.week.Invalid
+        // Exception raised when the value is either not an integer or NaN
+        with
+        | :? FormatException
+        | :? MissingValueException -> add Trend.week.Invalid
 
     let private weekCount rows =
         Series.foldValues weekFolder Map.empty rows
